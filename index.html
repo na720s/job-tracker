@@ -5,26 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>就活トラッカー</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #222; }
-    .container { max-width: 1200px; margin: 32px auto; padding: 0 16px; }
-    .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-bottom: 20px; }
-    h1, h2 { margin-top: 0; }
-    .row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px; }
-    .row-1 { margin-bottom: 12px; }
-    input, select, textarea, button { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #cfd6e4; border-radius: 10px; font-size: 14px; }
-    textarea { min-height: 90px; resize: vertical; }
-    button { background: #1f2937; color: white; border: none; cursor: pointer; }
-    button:hover { opacity: 0.92; }
-    .sub-btn { background: #e5e7eb; color: #111827; }
-    .actions { display: flex; gap: 8px; }
-    .hidden { display: none; }
-    .toolbar { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    table { width: 100%; border-collapse: collapse; min-width: 1000px; }
-    th, td { border-top: 1px solid #e5e7eb; padding: 10px; text-align: left; vertical-align: top; font-size: 14px; }
-    th { background: #f3f4f6; border-top: none; }
-    .table-wrap { overflow-x: auto; }
-    .muted { color: #6b7280; font-size: 13px; }
-    @media (max-width: 900px) { .row, .toolbar { grid-template-columns: 1fr; } }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .row-1 {
+      margin-bottom: 12px;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid #cfd6e4;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+    button {
+      background: #1f2937;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.92;
+    }
+    .sub-btn {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+    .hidden {
+      display: none;
+    }
+    .toolbar {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
+    }
+    th, td {
+      border-top: 1px solid #e5e7eb;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th {
+      background: #f3f4f6;
+      border-top: none;
+    }
+    .table-wrap {
+      overflow-x: auto;
+    }
+    .muted {
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .danger {
+      color: #b91c1c;
+      font-weight: bold;
+    }
+    .ok {
+      color: #047857;
+      font-weight: bold;
+    }
+    @media (max-width: 900px) {
+      .row, .toolbar {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -72,13 +156,23 @@
         </div>
         <div class="row">
           <select id="industry">
-            <option>IT・Web</option><option>コンサル</option><option>メーカー</option><option>商社</option>
-            <option>金融</option><option>広告・マスコミ</option><option>人材</option><option>不動産</option>
-            <option>インフラ</option><option>その他</option>
+            <option>IT・Web</option>
+            <option>コンサル</option>
+            <option>メーカー</option>
+            <option>商社</option>
+            <option>金融</option>
+            <option>広告・マスコミ</option>
+            <option>人材</option>
+            <option>不動産</option>
+            <option>インフラ</option>
+            <option>その他</option>
           </select>
           <select id="applicationType">
-            <option>インターン</option><option>本選考</option><option>説明会</option>
-            <option>カジュアル面談</option><option>OB・OG訪問</option>
+            <option>インターン</option>
+            <option>本選考</option>
+            <option>説明会</option>
+            <option>カジュアル面談</option>
+            <option>OB・OG訪問</option>
           </select>
         </div>
         <div class="row">
@@ -88,15 +182,28 @@
         <div class="row">
           <input id="esProgress" type="number" min="0" max="100" placeholder="ES進捗(%)">
           <select id="webTestType">
-            <option>未設定</option><option>SPI</option><option>玉手箱</option><option>TG-WEB</option>
-            <option>CAB</option><option>GAB</option><option>企業独自</option><option>なし</option>
+            <option>未設定</option>
+            <option>SPI</option>
+            <option>玉手箱</option>
+            <option>TG-WEB</option>
+            <option>CAB</option>
+            <option>GAB</option>
+            <option>企業独自</option>
+            <option>なし</option>
           </select>
         </div>
         <div class="row">
           <select id="status">
-            <option>未着手</option><option>情報収集中</option><option>ES作成中</option><option>ES提出済</option>
-            <option>Webテスト待ち</option><option>面接予定</option><option>選考中</option><option>内定</option>
-            <option>見送り</option><option>辞退</option>
+            <option>未着手</option>
+            <option>情報収集中</option>
+            <option>ES作成中</option>
+            <option>ES提出済</option>
+            <option>Webテスト待ち</option>
+            <option>面接予定</option>
+            <option>選考中</option>
+            <option>内定</option>
+            <option>見送り</option>
+            <option>辞退</option>
           </select>
           <input id="nextAction" type="text" placeholder="次にやること">
         </div>
@@ -113,17 +220,57 @@
         <h2>応募一覧</h2>
         <div class="toolbar">
           <input id="search" type="text" placeholder="会社名・職種・メモで検索">
-          <select id="filterIndustry"><option value="">全業界</option><option>IT・Web</option><option>コンサル</option><option>メーカー</option><option>商社</option><option>金融</option><option>広告・マスコミ</option><option>人材</option><option>不動産</option><option>インフラ</option><option>その他</option></select>
-          <select id="filterType"><option value="">全種別</option><option>インターン</option><option>本選考</option><option>説明会</option><option>カジュアル面談</option><option>OB・OG訪問</option></select>
-          <select id="filterStatus"><option value="">全ステータス</option><option>未着手</option><option>情報収集中</option><option>ES作成中</option><option>ES提出済</option><option>Webテスト待ち</option><option>面接予定</option><option>選考中</option><option>内定</option><option>見送り</option><option>辞退</option></select>
+          <select id="filterIndustry">
+            <option value="">全業界</option>
+            <option>IT・Web</option>
+            <option>コンサル</option>
+            <option>メーカー</option>
+            <option>商社</option>
+            <option>金融</option>
+            <option>広告・マスコミ</option>
+            <option>人材</option>
+            <option>不動産</option>
+            <option>インフラ</option>
+            <option>その他</option>
+          </select>
+          <select id="filterType">
+            <option value="">全種別</option>
+            <option>インターン</option>
+            <option>本選考</option>
+            <option>説明会</option>
+            <option>カジュアル面談</option>
+            <option>OB・OG訪問</option>
+          </select>
+          <select id="filterStatus">
+            <option value="">全ステータス</option>
+            <option>未着手</option>
+            <option>情報収集中</option>
+            <option>ES作成中</option>
+            <option>ES提出済</option>
+            <option>Webテスト待ち</option>
+            <option>面接予定</option>
+            <option>選考中</option>
+            <option>内定</option>
+            <option>見送り</option>
+            <option>辞退</option>
+          </select>
         </div>
 
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>会社名</th><th>業界</th><th>職種 / コース名</th><th>応募種別</th><th>締切日時</th>
-                <th>面接日時</th><th>ES進捗</th><th>Webテスト</th><th>ステータス</th><th>メモ欄</th><th>操作</th>
+                <th>会社名</th>
+                <th>業界</th>
+                <th>職種 / コース名</th>
+                <th>応募種別</th>
+                <th>締切日時</th>
+                <th>面接日時</th>
+                <th>ES進捗</th>
+                <th>Webテスト</th>
+                <th>ステータス</th>
+                <th>メモ欄</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody id="entryTableBody"></tbody>
@@ -137,6 +284,7 @@
     const USERS_KEY = "job_hunt_users_v1";
     const SESSION_KEY = "job_hunt_session_v1";
     const ENTRY_KEY_PREFIX = "job_hunt_entries_v1_";
+
     let authMode = "signup";
     let editingId = null;
 
@@ -146,6 +294,7 @@
     const authSubmitBtn = document.getElementById("authSubmitBtn");
     const showLoginBtn = document.getElementById("showLoginBtn");
     const showSignupBtn = document.getElementById("showSignupBtn");
+
     const currentUserText = document.getElementById("currentUserText");
     const logoutBtn = document.getElementById("logoutBtn");
 
@@ -174,14 +323,37 @@
     const filterStatus = document.getElementById("filterStatus");
     const entryTableBody = document.getElementById("entryTableBody");
 
-    function getUsers() { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); }
-    function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
-    function getSession() { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); }
-    function saveSession(session) { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
-    function clearSession() { localStorage.removeItem(SESSION_KEY); }
-    function getEntryKey(uid) { return ENTRY_KEY_PREFIX + uid; }
-    function getEntries(uid) { return JSON.parse(localStorage.getItem(getEntryKey(uid)) || "[]"); }
-    function saveEntries(uid, entries) { localStorage.setItem(getEntryKey(uid), JSON.stringify(entries)); }
+    function getUsers() {
+      return JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    }
+
+    function getSession() {
+      return JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    }
+
+    function saveSession(session) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }
+
+    function clearSession() {
+      localStorage.removeItem(SESSION_KEY);
+    }
+
+    function getEntryKey(uid) {
+      return ENTRY_KEY_PREFIX + uid;
+    }
+
+    function getEntries(uid) {
+      return JSON.parse(localStorage.getItem(getEntryKey(uid)) || "[]");
+    }
+
+    function saveEntries(uid, entries) {
+      localStorage.setItem(getEntryKey(uid), JSON.stringify(entries));
+    }
 
     function formatDateTime(value) {
       if (!value) return "-";
@@ -195,7 +367,9 @@
       return `${yyyy}/${mm}/${dd} ${hh}:${mi}`;
     }
 
-    function getCurrentUser() { return getSession(); }
+    function getCurrentUser() {
+      return getSession();
+    }
 
     function switchAuthMode(mode) {
       authMode = mode;
@@ -214,6 +388,7 @@
         appView.classList.add("hidden");
         return;
       }
+
       authView.classList.add("hidden");
       appView.classList.remove("hidden");
       currentUserText.textContent = `ログイン中: ${currentUser.userId} / ${currentUser.email}`;
@@ -223,7 +398,9 @@
     function getFilteredEntries() {
       const currentUser = getCurrentUser();
       if (!currentUser) return [];
+
       let entries = getEntries(currentUser.userId);
+
       const q = search.value.trim().toLowerCase();
       const fi = filterIndustry.value;
       const ft = filterType.value;
@@ -245,10 +422,12 @@
     function renderEntries() {
       const entries = getFilteredEntries();
       entryTableBody.innerHTML = "";
+
       if (entries.length === 0) {
-        entryTableBody.innerHTML = '<tr><td colspan="11" class="muted" style="padding:24px;">データがありません。</td></tr>';
+        entryTableBody.innerHTML = `<tr><td colspan="11" class="muted" style="padding:24px;">データがありません。</td></tr>`;
         return;
       }
+
       entries.forEach(e => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -293,6 +472,7 @@
       const entries = getEntries(currentUser.userId);
       const e = entries.find(x => x.id === id);
       if (!e) return;
+
       editingId = id;
       company.value = e.company || "";
       position.value = e.position || "";
@@ -329,6 +509,7 @@
 
     authSubmitBtn.onclick = () => {
       const users = getUsers();
+
       if (authMode === "signup") {
         if (!email.value || !userId.value || !password.value || !confirmPassword.value) {
           authMessage.textContent = "すべて入力してください。";
@@ -346,7 +527,12 @@
           authMessage.textContent = "そのユーザーIDはすでに使われています。";
           return;
         }
-        const user = { email: email.value, userId: userId.value, password: password.value };
+
+        const user = {
+          email: email.value,
+          userId: userId.value,
+          password: password.value
+        };
         users.push(user);
         saveUsers(users);
         saveSession({ email: user.email, userId: user.userId });
@@ -362,11 +548,19 @@
       }
     };
 
-    logoutBtn.onclick = () => { clearSession(); renderApp(); };
+    logoutBtn.onclick = () => {
+      clearSession();
+      renderApp();
+    };
+
     saveEntryBtn.onclick = () => {
       const currentUser = getCurrentUser();
       if (!currentUser) return;
-      if (!company.value.trim()) { alert("会社名を入力してください。"); return; }
+      if (!company.value.trim()) {
+        alert("会社名を入力してください。");
+        return;
+      }
+
       const entries = getEntries(currentUser.userId);
       const entry = {
         id: editingId || String(Date.now()),
@@ -382,7 +576,11 @@
         nextAction: nextAction.value,
         notes: notes.value
       };
-      const newEntries = editingId ? entries.map(x => x.id === editingId ? entry : x) : [entry, ...entries];
+
+      const newEntries = editingId
+        ? entries.map(x => x.id === editingId ? entry : x)
+        : [entry, ...entries];
+
       saveEntries(currentUser.userId, newEntries);
       clearEntryForm();
       renderEntries();
@@ -396,6 +594,7 @@
 
     switchAuthMode("signup");
     renderApp();
+
     window.editEntry = editEntry;
     window.deleteEntry = deleteEntry;
   </script>
