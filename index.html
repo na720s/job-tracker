@@ -184,6 +184,54 @@
     let editingId = null;
     let deadlineSort = "asc";
 
+function exportData() {
+  const data = {
+    users: JSON.parse(localStorage.getItem("job_hunt_users_v2") || "[]"),
+    entries: {},
+    tasks: {}
+  };
+
+  data.users.forEach(u => {
+    data.entries[u.username] = JSON.parse(localStorage.getItem("job_hunt_entries_v2_" + u.username) || "[]");
+    data.tasks[u.username] = JSON.parse(localStorage.getItem("job_hunt_tasks_v2_" + u.username) || "[]");
+  });
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "job-tracker-backup.json";
+  a.click();
+}
+
+function importData() {
+  const file = document.getElementById("importFile").files[0];
+  if (!file) return alert("ファイルを選択してください");
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      if (!confirm("現在のデータを上書きします。本当にいいですか？")) return;
+
+      localStorage.setItem("job_hunt_users_v2", JSON.stringify(data.users || []));
+
+      Object.keys(data.entries || {}).forEach(u => {
+        localStorage.setItem("job_hunt_entries_v2_" + u, JSON.stringify(data.entries[u]));
+      });
+
+      Object.keys(data.tasks || {}).forEach(u => {
+        localStorage.setItem("job_hunt_tasks_v2_" + u, JSON.stringify(data.tasks[u]));
+      });
+
+      alert("復元完了！ページをリロードしてください");
+    } catch {
+      alert("ファイルが壊れています");
+    }
+  };
+  reader.readAsText(file);
+}
+    
     const authView = document.getElementById("authView");
     const appView = document.getElementById("appView");
     const authMessage = document.getElementById("authMessage");
@@ -192,7 +240,9 @@
     const showSignupBtn = document.getElementById("showSignupBtn");
     const currentUserText = document.getElementById("currentUserText");
     const logoutBtn = document.getElementById("logoutBtn");
-
+<button onclick="exportData()">📥 バックアップ</button>
+<input type="file" id="importFile" />
+<button onclick="importData()">📤 復元</button>
     const username = document.getElementById("username");
     const signupUsername = document.getElementById("signupUsername");
     const password = document.getElementById("password");
