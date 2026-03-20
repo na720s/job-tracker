@@ -78,9 +78,12 @@
             <h2 style="margin-bottom:6px;">就活トラッカー</h2>
             <div id="currentUserText" class="muted"></div>
           </div>
-          <div class="actions">
-            <button id="logoutBtn" class="sub-btn" type="button">ログアウト</button>
-          </div>
+<div class="actions">
+  <button onclick="exportData()" class="sub-btn" type="button">📥 バックアップ</button>
+  <input type="file" id="importFile" style="max-width: 220px;" />
+  <button onclick="importData()" class="sub-btn" type="button">📤 復元</button>
+  <button id="logoutBtn" class="sub-btn" type="button">ログアウト</button>
+</div>
         </div>
       </div>
 
@@ -240,9 +243,6 @@ function importData() {
     const showSignupBtn = document.getElementById("showSignupBtn");
     const currentUserText = document.getElementById("currentUserText");
     const logoutBtn = document.getElementById("logoutBtn");
-<button onclick="exportData()">📥 バックアップ</button>
-<input type="file" id="importFile" />
-<button onclick="importData()">📤 復元</button>
     const username = document.getElementById("username");
     const signupUsername = document.getElementById("signupUsername");
     const password = document.getElementById("password");
