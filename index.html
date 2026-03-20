@@ -15,7 +15,7 @@
     button { background: #1f2937; color: white; border: none; cursor: pointer; }
     .sub-btn { background: #e5e7eb; color: #111827; }
     .danger-btn { background: #fee2e2; color: #991b1b; }
-    .actions { display: flex; gap: 8px; }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .hidden { display: none; }
     .toolbar { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
     table { width: 100%; border-collapse: collapse; min-width: 1180px; }
@@ -44,6 +44,7 @@
     .date-label { font-size: 12px; color: #475569; font-weight: bold; margin-bottom: 6px; }
     .small-btn { width: auto; padding: 8px 10px; font-size: 12px; }
     .sort-btn { width: auto; white-space: nowrap; }
+    .file-input { max-width: 220px; background: #fff; }
     @media (max-width: 900px) { .row, .toolbar, .date-group { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -78,12 +79,12 @@
             <h2 style="margin-bottom:6px;">就活トラッカー</h2>
             <div id="currentUserText" class="muted"></div>
           </div>
-<div class="actions">
-  <button onclick="exportData()" class="sub-btn" type="button">📥 バックアップ</button>
-  <input type="file" id="importFile" style="max-width: 220px;" />
-  <button onclick="importData()" class="sub-btn" type="button">📤 復元</button>
-  <button id="logoutBtn" class="sub-btn" type="button">ログアウト</button>
-</div>
+          <div class="actions">
+            <button onclick="exportData()" class="sub-btn" type="button">📥 バックアップ</button>
+            <input type="file" id="importFile" class="file-input" />
+            <button onclick="importData()" class="sub-btn" type="button">📤 復元</button>
+            <button id="logoutBtn" class="sub-btn" type="button">ログアウト</button>
+          </div>
         </div>
       </div>
 
@@ -187,54 +188,57 @@
     let editingId = null;
     let deadlineSort = "asc";
 
-function exportData() {
-  const data = {
-    users: JSON.parse(localStorage.getItem("job_hunt_users_v2") || "[]"),
-    entries: {},
-    tasks: {}
-  };
+    function exportData() {
+      const data = {
+        users: JSON.parse(localStorage.getItem("job_hunt_users_v2") || "[]"),
+        entries: {},
+        tasks: {}
+      };
 
-  data.users.forEach(u => {
-    data.entries[u.username] = JSON.parse(localStorage.getItem("job_hunt_entries_v2_" + u.username) || "[]");
-    data.tasks[u.username] = JSON.parse(localStorage.getItem("job_hunt_tasks_v2_" + u.username) || "[]");
-  });
-
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "job-tracker-backup.json";
-  a.click();
-}
-
-function importData() {
-  const file = document.getElementById("importFile").files[0];
-  if (!file) return alert("ファイルを選択してください");
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
-
-      if (!confirm("現在のデータを上書きします。本当にいいですか？")) return;
-
-      localStorage.setItem("job_hunt_users_v2", JSON.stringify(data.users || []));
-
-      Object.keys(data.entries || {}).forEach(u => {
-        localStorage.setItem("job_hunt_entries_v2_" + u, JSON.stringify(data.entries[u]));
+      data.users.forEach(u => {
+        data.entries[u.username] = JSON.parse(localStorage.getItem("job_hunt_entries_v2_" + u.username) || "[]");
+        data.tasks[u.username] = JSON.parse(localStorage.getItem("job_hunt_tasks_v2_" + u.username) || "[]");
       });
 
-      Object.keys(data.tasks || {}).forEach(u => {
-        localStorage.setItem("job_hunt_tasks_v2_" + u, JSON.stringify(data.tasks[u]));
-      });
-
-      alert("復元完了！ページをリロードしてください");
-    } catch {
-      alert("ファイルが壊れています");
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "job-tracker-backup.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
     }
-  };
-  reader.readAsText(file);
-}
-    
+
+    function importData() {
+      const input = document.getElementById("importFile");
+      const file = input.files[0];
+      if (!file) return alert("ファイルを選択してください");
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+
+          if (!confirm("現在のデータを上書きします。本当にいいですか？")) return;
+
+          localStorage.setItem("job_hunt_users_v2", JSON.stringify(data.users || []));
+
+          Object.keys(data.entries || {}).forEach(u => {
+            localStorage.setItem("job_hunt_entries_v2_" + u, JSON.stringify(data.entries[u]));
+          });
+
+          Object.keys(data.tasks || {}).forEach(u => {
+            localStorage.setItem("job_hunt_tasks_v2_" + u, JSON.stringify(data.tasks[u]));
+          });
+
+          alert("復元完了。ページを再読み込みします。");
+          location.reload();
+        } catch (err) {
+          alert("ファイルが壊れているか、形式が違います。");
+        }
+      };
+      reader.readAsText(file);
+    }
+
     const authView = document.getElementById("authView");
     const appView = document.getElementById("appView");
     const authMessage = document.getElementById("authMessage");
@@ -243,6 +247,7 @@ function importData() {
     const showSignupBtn = document.getElementById("showSignupBtn");
     const currentUserText = document.getElementById("currentUserText");
     const logoutBtn = document.getElementById("logoutBtn");
+
     const username = document.getElementById("username");
     const signupUsername = document.getElementById("signupUsername");
     const password = document.getElementById("password");
@@ -353,14 +358,14 @@ function importData() {
     function getFilteredEntries() {
       const currentUser = getCurrentUser();
       if (!currentUser) return [];
-      let entries = getEntries(currentUser.username);
+      const entries = getEntries(currentUser.username);
       const q = search.value.trim().toLowerCase();
       const fi = filterIndustry.value;
       const ft = filterType.value;
       const fs = filterStatus.value;
       const fd = filterDeadline.value;
 
-      let result = entries.filter(e => {
+      const result = entries.filter(e => {
         const text = [e.company, e.position, e.notes, e.industry, e.nextAction].join(" ").toLowerCase();
         return (!q || text.includes(q))
           && (!fi || e.industry === fi)
