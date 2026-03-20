@@ -65,15 +65,18 @@
       </div>
 
       <div id="authMessage" class="muted" style="margin-bottom:12px;"></div>
+<div class="row">
+  <input id="username" type="text" placeholder="ユーザー名">
+</div>
 
-      <div class="row">
-        <input id="username" type="text" placeholder="ユーザー名">
-        <input id="signupUsername" type="text" placeholder="新規登録用ユーザー名">
-      </div>
-      <div class="row">
-        <input id="password" type="password" placeholder="パスワード">
-        <input id="confirmPassword" type="password" placeholder="確認用パスワード（新規登録時のみ）">
-      </div>
+<div class="row">
+  <input id="password" type="password" placeholder="パスワード">
+</div>
+
+<div class="row" id="confirmRow">
+  <input id="confirmPassword" type="password" placeholder="確認用パスワード（新規登録時のみ）">
+</div>
+ 
       <button id="authSubmitBtn" type="button">新規登録</button>
     </div>
 
@@ -559,7 +562,7 @@
     }
 
     async function signUpWithUsername() {
-      const uname = signupUsername.value.trim().toLowerCase();
+      const uname = Username.value.trim().toLowerCase();
       const pwd = password.value;
       const pwd2 = confirmPassword.value;
 
