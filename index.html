@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>就活トラッカー</title>
+  <title>就活トラッカー (Supabase版)</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #222; }
     .container { max-width: 1280px; margin: 24px auto; padding: 0 16px; }
@@ -44,15 +44,20 @@
     .date-label { font-size: 12px; color: #475569; font-weight: bold; margin-bottom: 6px; }
     .small-btn { width: auto; padding: 8px 10px; font-size: 12px; }
     .sort-btn { width: auto; white-space: nowrap; }
-    .file-input { max-width: 220px; background: #fff; }
+    .status-bar { margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; background: #f8fafc; border: 1px solid #e5e7eb; }
+    .error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .ok { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .loading { opacity: 0.7; pointer-events: none; }
     @media (max-width: 900px) { .row, .toolbar, .date-group { grid-template-columns: 1fr; } }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
     <div id="authView" class="card">
       <h1>就活トラッカー</h1>
-      <p class="muted">ユーザー名 + パスワードでログインします。データはこのブラウザ内だけに保存されます。</p>
+      <p class="muted">どのブラウザからでも同じユーザー名・パスワードで使える Supabase 版です。</p>
+      <div id="authNotice" class="status-bar">初回は「新規登録」から作成してください。</div>
 
       <div class="actions" style="margin-bottom:16px;">
         <button id="showLoginBtn" class="sub-btn" type="button">ログイン</button>
@@ -80,12 +85,11 @@
             <div id="currentUserText" class="muted"></div>
           </div>
           <div class="actions">
-            <button onclick="exportData()" class="sub-btn" type="button">📥 バックアップ</button>
-            <input type="file" id="importFile" class="file-input" />
-            <button onclick="importData()" class="sub-btn" type="button">📤 復元</button>
+            <button id="refreshBtn" class="sub-btn" type="button">再読み込み</button>
             <button id="logoutBtn" class="sub-btn" type="button">ログアウト</button>
           </div>
         </div>
+        <div id="appMessage" class="muted" style="margin-top:12px;"></div>
       </div>
 
       <div class="card">
@@ -180,73 +184,29 @@
   </div>
 
   <script>
-    const USERS_KEY = "job_hunt_users_v2";
-    const SESSION_KEY = "job_hunt_session_v2";
-    const ENTRY_KEY_PREFIX = "job_hunt_entries_v2_";
-    const TASK_KEY_PREFIX = "job_hunt_tasks_v2_";
+    const SUPABASE_URL = "https://utdddrqbbnzbgfaakjki.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_JJQHmghjVqCy74qJQJT5bw_tJNjsQ4B";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
     let authMode = "signup";
     let editingId = null;
     let deadlineSort = "asc";
-
-    function exportData() {
-      const data = {
-        users: JSON.parse(localStorage.getItem("job_hunt_users_v2") || "[]"),
-        entries: {},
-        tasks: {}
-      };
-
-      data.users.forEach(u => {
-        data.entries[u.username] = JSON.parse(localStorage.getItem("job_hunt_entries_v2_" + u.username) || "[]");
-        data.tasks[u.username] = JSON.parse(localStorage.getItem("job_hunt_tasks_v2_" + u.username) || "[]");
-      });
-
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "job-tracker-backup.json";
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }
-
-    function importData() {
-      const input = document.getElementById("importFile");
-      const file = input.files[0];
-      if (!file) return alert("ファイルを選択してください");
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = JSON.parse(e.target.result);
-
-          if (!confirm("現在のデータを上書きします。本当にいいですか？")) return;
-
-          localStorage.setItem("job_hunt_users_v2", JSON.stringify(data.users || []));
-
-          Object.keys(data.entries || {}).forEach(u => {
-            localStorage.setItem("job_hunt_entries_v2_" + u, JSON.stringify(data.entries[u]));
-          });
-
-          Object.keys(data.tasks || {}).forEach(u => {
-            localStorage.setItem("job_hunt_tasks_v2_" + u, JSON.stringify(data.tasks[u]));
-          });
-
-          alert("復元完了。ページを再読み込みします。");
-          location.reload();
-        } catch (err) {
-          alert("ファイルが壊れているか、形式が違います。");
-        }
-      };
-      reader.readAsText(file);
-    }
+    let currentUser = null;
+    let currentUsername = "";
+    let applications = [];
+    let tasks = [];
 
     const authView = document.getElementById("authView");
     const appView = document.getElementById("appView");
     const authMessage = document.getElementById("authMessage");
+    const authNotice = document.getElementById("authNotice");
+    const appMessage = document.getElementById("appMessage");
     const authSubmitBtn = document.getElementById("authSubmitBtn");
     const showLoginBtn = document.getElementById("showLoginBtn");
     const showSignupBtn = document.getElementById("showSignupBtn");
     const currentUserText = document.getElementById("currentUserText");
     const logoutBtn = document.getElementById("logoutBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
 
     const username = document.getElementById("username");
     const signupUsername = document.getElementById("signupUsername");
@@ -279,17 +239,19 @@
     const entryTableBody = document.getElementById("entryTableBody");
     const sortDeadlineBtn = document.getElementById("sortDeadlineBtn");
 
-    function getUsers() { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); }
-    function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
-    function getSession() { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); }
-    function saveSession(session) { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
-    function clearSession() { localStorage.removeItem(SESSION_KEY); }
-    function getEntryKey(uid) { return ENTRY_KEY_PREFIX + uid; }
-    function getTaskKey(uid) { return TASK_KEY_PREFIX + uid; }
-    function getEntries(uid) { return JSON.parse(localStorage.getItem(getEntryKey(uid)) || "[]"); }
-    function saveEntries(uid, entries) { localStorage.setItem(getEntryKey(uid), JSON.stringify(entries)); }
-    function getTasks(uid) { return JSON.parse(localStorage.getItem(getTaskKey(uid)) || "[]"); }
-    function saveTasks(uid, tasks) { localStorage.setItem(getTaskKey(uid), JSON.stringify(tasks)); }
+    function usernameToEmail(name) {
+      return `${name.trim().toLowerCase()}@jobtracker.local`;
+    }
+
+    function setAuthMessage(message, type = "") {
+      authMessage.textContent = message;
+      authMessage.className = type === "error" ? "status-bar error" : type === "ok" ? "status-bar ok" : "muted";
+    }
+
+    function setAppMessage(message, type = "") {
+      appMessage.textContent = message;
+      appMessage.className = type === "error" ? "status-bar error" : type === "ok" ? "status-bar ok" : "muted";
+    }
 
     function formatDateTime(value) {
       if (!value) return "-";
@@ -303,6 +265,18 @@
       return `${yyyy}/${mm}/${dd} ${hh}:${mi}`;
     }
 
+    function toDatetimeLocal(value) {
+      if (!value) return "";
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return "";
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mi = String(d.getMinutes()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+    }
+
     function getDateOnly(value) {
       if (!value) return "";
       const d = new Date(value);
@@ -311,32 +285,6 @@
       const mm = String(d.getMonth() + 1).padStart(2, "0");
       const dd = String(d.getDate()).padStart(2, "0");
       return `${yyyy}-${mm}-${dd}`;
-    }
-
-    function getCurrentUser() { return getSession(); }
-
-    function switchAuthMode(mode) {
-      authMode = mode;
-      authMessage.textContent = "";
-      authSubmitBtn.textContent = mode === "signup" ? "新規登録" : "ログイン";
-      signupUsername.style.display = mode === "signup" ? "block" : "none";
-      confirmPassword.style.display = mode === "signup" ? "block" : "none";
-      showLoginBtn.className = mode === "login" ? "" : "sub-btn";
-      showSignupBtn.className = mode === "signup" ? "" : "sub-btn";
-    }
-
-    function renderApp() {
-      const currentUser = getCurrentUser();
-      if (!currentUser) {
-        authView.classList.remove("hidden");
-        appView.classList.add("hidden");
-        return;
-      }
-      authView.classList.add("hidden");
-      appView.classList.remove("hidden");
-      currentUserText.textContent = `ログイン中: ${currentUser.username}`;
-      renderEntries();
-      renderTasks();
     }
 
     function industryClass(name) {
@@ -355,21 +303,89 @@
       return map[name] || "industry-other";
     }
 
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function switchAuthMode(mode) {
+      authMode = mode;
+      setAuthMessage("");
+      authSubmitBtn.textContent = mode === "signup" ? "新規登録" : "ログイン";
+      signupUsername.style.display = mode === "signup" ? "block" : "none";
+      confirmPassword.style.display = mode === "signup" ? "block" : "none";
+      showLoginBtn.className = mode === "login" ? "" : "sub-btn";
+      showSignupBtn.className = mode === "signup" ? "" : "sub-btn";
+    }
+
+    async function ensureProfile(userId, uname) {
+      const { error } = await supabase.from("profiles").upsert({
+        id: userId,
+        username: uname
+      });
+      if (error) throw error;
+    }
+
+    async function getProfileUsername(userId) {
+      const { data, error } = await supabase.from("profiles").select("username").eq("id", userId).single();
+      if (error) throw error;
+      return data.username;
+    }
+
+    async function loadApplications() {
+      const { data, error } = await supabase
+        .from("applications")
+        .select("*")
+        .order("deadline", { ascending: deadlineSort === "asc", nullsFirst: false });
+      if (error) throw error;
+      applications = data || [];
+      renderEntries();
+    }
+
+    async function loadTasks() {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      tasks = data || [];
+      renderTasks();
+    }
+
+    async function loadAllData() {
+      await Promise.all([loadApplications(), loadTasks()]);
+      setAppMessage("最新データを読み込みました。", "ok");
+    }
+
+    function renderApp() {
+      if (!currentUser) {
+        authView.classList.remove("hidden");
+        appView.classList.add("hidden");
+        return;
+      }
+      authView.classList.add("hidden");
+      appView.classList.remove("hidden");
+      currentUserText.textContent = `ログイン中: ${currentUsername}`;
+      renderEntries();
+      renderTasks();
+    }
+
     function getFilteredEntries() {
-      const currentUser = getCurrentUser();
-      if (!currentUser) return [];
-      const entries = getEntries(currentUser.username);
       const q = search.value.trim().toLowerCase();
       const fi = filterIndustry.value;
       const ft = filterType.value;
       const fs = filterStatus.value;
       const fd = filterDeadline.value;
 
-      const result = entries.filter(e => {
-        const text = [e.company, e.position, e.notes, e.industry, e.nextAction].join(" ").toLowerCase();
+      const result = applications.filter(e => {
+        const text = [e.company, e.position, e.notes, e.industry, e.next_action].join(" ").toLowerCase();
         return (!q || text.includes(q))
           && (!fi || e.industry === fi)
-          && (!ft || e.applicationType === ft)
+          && (!ft || e.application_type === ft)
           && (!fs || e.status === fs)
           && (!fd || getDateOnly(e.deadline) === fd);
       });
@@ -384,26 +400,26 @@
     }
 
     function renderEntries() {
-      const entries = getFilteredEntries();
+      const rows = getFilteredEntries();
       entryTableBody.innerHTML = "";
       sortDeadlineBtn.textContent = `締め切り日順: ${deadlineSort === "asc" ? "昇順" : "降順"}`;
 
-      if (entries.length === 0) {
+      if (rows.length === 0) {
         entryTableBody.innerHTML = '<tr><td colspan="11" class="muted" style="padding:24px;">データがありません。</td></tr>';
         return;
       }
 
-      entries.forEach(e => {
+      rows.forEach(e => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${escapeHtml(e.company || "")}<div class="muted">${escapeHtml(e.nextAction || "")}</div></td>
+          <td>${escapeHtml(e.company)}<div class="muted">${escapeHtml(e.next_action || "")}</div></td>
           <td><span class="pill ${industryClass(e.industry)}">${escapeHtml(e.industry || "")}</span></td>
           <td>${escapeHtml(e.position || "-")}</td>
-          <td>${escapeHtml(e.applicationType || "")}</td>
+          <td>${escapeHtml(e.application_type || "")}</td>
           <td><div class="section-title">提出・応募の期限</div>${escapeHtml(formatDateTime(e.deadline))}</td>
-          <td><div class="section-title">面接・イベント日時</div>${escapeHtml(formatDateTime(e.interviewDate))}</td>
-          <td>${escapeHtml(String(e.esProgress ?? 0))}%</td>
-          <td>${escapeHtml(e.webTestType || "")}</td>
+          <td><div class="section-title">面接・イベント日時</div>${escapeHtml(formatDateTime(e.interview_date))}</td>
+          <td>${escapeHtml(String(e.es_progress ?? 0))}%</td>
+          <td>${escapeHtml(e.web_test_type || "")}</td>
           <td>${escapeHtml(e.status || "")}</td>
           <td>${escapeHtml(e.notes || "-")}</td>
           <td>
@@ -414,6 +430,26 @@
           </td>
         `;
         entryTableBody.appendChild(tr);
+      });
+    }
+
+    function renderTasks() {
+      taskList.innerHTML = "";
+      if (tasks.length === 0) {
+        taskList.innerHTML = '<div class="task-empty">タスクはまだありません。</div>';
+        return;
+      }
+      tasks.forEach(task => {
+        const div = document.createElement("div");
+        div.className = "task-item";
+        div.innerHTML = `
+          <div class="task-left">
+            <input type="checkbox" onchange="completeTask('${task.id}')" />
+            <div class="task-text">${escapeHtml(task.text)}</div>
+          </div>
+          <div class="muted">${escapeHtml(formatDateTime(task.created_at))}</div>
+        `;
+        taskList.appendChild(div);
       });
     }
 
@@ -432,163 +468,215 @@
       notes.value = "";
     }
 
-    function renderTasks() {
-      const currentUser = getCurrentUser();
-      if (!currentUser) return;
-      const tasks = getTasks(currentUser.username);
-      taskList.innerHTML = "";
-      if (tasks.length === 0) {
-        taskList.innerHTML = '<div class="task-empty">タスクはまだありません。</div>';
+    async function addTask() {
+      const text = taskInput.value.trim();
+      if (!text || !currentUser) return;
+      const { error } = await supabase.from("tasks").insert({
+        user_id: currentUser.id,
+        text
+      });
+      if (error) {
+        setAppMessage(error.message, "error");
         return;
       }
-      tasks.forEach(task => {
-        const div = document.createElement("div");
-        div.className = "task-item";
-        div.innerHTML = `
-          <div class="task-left">
-            <input type="checkbox" onchange="completeTask('${task.id}')" />
-            <div class="task-text">${escapeHtml(task.text)}</div>
-          </div>
-          <div class="muted">${escapeHtml(task.createdAt)}</div>
-        `;
-        taskList.appendChild(div);
-      });
-    }
-
-    function addTask() {
-      const currentUser = getCurrentUser();
-      if (!currentUser) return;
-      const text = taskInput.value.trim();
-      if (!text) return;
-      const tasks = getTasks(currentUser.username);
-      const now = new Date();
-      const label = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,"0")}/${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-      tasks.unshift({ id: String(Date.now()), text, createdAt: label });
-      saveTasks(currentUser.username, tasks);
       taskInput.value = "";
-      renderTasks();
+      await loadTasks();
     }
 
-    function completeTask(id) {
-      const currentUser = getCurrentUser();
-      if (!currentUser) return;
-      const tasks = getTasks(currentUser.username).filter(t => t.id !== id);
-      saveTasks(currentUser.username, tasks);
-      renderTasks();
+    async function completeTask(id) {
+      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      if (error) {
+        setAppMessage(error.message, "error");
+        return;
+      }
+      await loadTasks();
+    }
+
+    async function deleteEntry(id) {
+      const { error } = await supabase.from("applications").delete().eq("id", id);
+      if (error) {
+        setAppMessage(error.message, "error");
+        return;
+      }
+      await loadApplications();
     }
 
     function editEntry(id) {
-      const currentUser = getCurrentUser();
-      const entries = getEntries(currentUser.username);
-      const e = entries.find(x => x.id === id);
+      const e = applications.find(x => x.id === id);
       if (!e) return;
       editingId = id;
       company.value = e.company || "";
       position.value = e.position || "";
       industry.value = e.industry || "IT・Web";
-      applicationType.value = e.applicationType || "インターン";
-      deadline.value = e.deadline || "";
-      interviewDate.value = e.interviewDate || "";
-      esProgress.value = e.esProgress ?? "";
-      webTestType.value = e.webTestType || "未設定";
+      applicationType.value = e.application_type || "インターン";
+      deadline.value = toDatetimeLocal(e.deadline);
+      interviewDate.value = toDatetimeLocal(e.interview_date);
+      esProgress.value = e.es_progress ?? "";
+      webTestType.value = e.web_test_type || "未設定";
       status.value = e.status || "未着手";
-      nextAction.value = e.nextAction || "";
+      nextAction.value = e.next_action || "";
       notes.value = e.notes || "";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function deleteEntry(id) {
-      const currentUser = getCurrentUser();
-      const entries = getEntries(currentUser.username).filter(x => x.id !== id);
-      saveEntries(currentUser.username, entries);
-      renderEntries();
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    showLoginBtn.onclick = () => switchAuthMode("login");
-    showSignupBtn.onclick = () => switchAuthMode("signup");
-
-    authSubmitBtn.onclick = () => {
-      const users = getUsers();
-      if (authMode === "signup") {
-        if (!signupUsername.value || !password.value || !confirmPassword.value) {
-          authMessage.textContent = "新規登録用ユーザー名とパスワードを入力してください。";
-          return;
-        }
-        if (password.value !== confirmPassword.value) {
-          authMessage.textContent = "確認用パスワードが一致しません。";
-          return;
-        }
-        if (users.some(u => u.username === signupUsername.value)) {
-          authMessage.textContent = "そのユーザー名はすでに使われています。";
-          return;
-        }
-        const user = { username: signupUsername.value, password: password.value };
-        users.push(user);
-        saveUsers(users);
-        saveSession({ username: user.username });
-        username.value = "";
-        signupUsername.value = "";
-        password.value = "";
-        confirmPassword.value = "";
-        renderApp();
-      } else {
-        if (!username.value || !password.value) {
-          authMessage.textContent = "ユーザー名とパスワードを入力してください。";
-          return;
-        }
-        const user = users.find(u => u.username === username.value && u.password === password.value);
-        if (!user) {
-          authMessage.textContent = "ユーザー名またはパスワードが違います。";
-          return;
-        }
-        saveSession({ username: user.username });
-        username.value = "";
-        signupUsername.value = "";
-        password.value = "";
-        confirmPassword.value = "";
-        renderApp();
-      }
-    };
-
-    logoutBtn.onclick = () => { clearSession(); renderApp(); };
-
-    saveEntryBtn.onclick = () => {
-      const currentUser = getCurrentUser();
+    async function saveEntry() {
       if (!currentUser) return;
       if (!company.value.trim()) {
         alert("会社名を入力してください。");
         return;
       }
-      const entries = getEntries(currentUser.username);
-      const entry = {
-        id: editingId || String(Date.now()),
+
+      const payload = {
+        user_id: currentUser.id,
         company: company.value,
         position: position.value,
         industry: industry.value,
-        applicationType: applicationType.value,
-        deadline: deadline.value,
-        interviewDate: interviewDate.value,
-        esProgress: Number(esProgress.value || 0),
-        webTestType: webTestType.value,
+        application_type: applicationType.value,
+        deadline: deadline.value || null,
+        interview_date: interviewDate.value || null,
+        es_progress: Number(esProgress.value || 0),
+        web_test_type: webTestType.value,
         status: status.value,
-        nextAction: nextAction.value,
+        next_action: nextAction.value,
         notes: notes.value
       };
-      const newEntries = editingId ? entries.map(x => x.id === editingId ? entry : x) : [entry, ...entries];
-      saveEntries(currentUser.username, newEntries);
+
+      let error;
+      if (editingId) {
+        ({ error } = await supabase.from("applications").update(payload).eq("id", editingId));
+      } else {
+        ({ error } = await supabase.from("applications").insert(payload));
+      }
+
+      if (error) {
+        setAppMessage(error.message, "error");
+        return;
+      }
+
       clearEntryForm();
-      renderEntries();
+      await loadApplications();
+      setAppMessage("保存しました。", "ok");
+    }
+
+    async function signUpWithUsername() {
+      const uname = signupUsername.value.trim().toLowerCase();
+      const pwd = password.value;
+      const pwd2 = confirmPassword.value;
+
+      if (!uname || !pwd || !pwd2) {
+        setAuthMessage("新規登録用ユーザー名とパスワードを入力してください。", "error");
+        return;
+      }
+      if (pwd !== pwd2) {
+        setAuthMessage("確認用パスワードが一致しません。", "error");
+        return;
+      }
+
+      const email = usernameToEmail(uname);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: pwd
+      });
+
+      if (error) {
+        setAuthMessage(error.message, "error");
+        return;
+      }
+
+      if (!data.user || !data.session) {
+        setAuthMessage("登録できましたが、すぐにログインできません。Supabase の Email プロバイダ設定で Confirm email を OFF にしてください。", "error");
+        return;
+      }
+
+      currentUser = data.user;
+      currentUsername = uname;
+
+      try {
+        await ensureProfile(data.user.id, uname);
+        renderApp();
+        await loadAllData();
+        setAuthMessage("登録完了です。", "ok");
+      } catch (profileError) {
+        setAuthMessage(profileError.message, "error");
+      }
+    }
+
+    async function loginWithUsername() {
+      const uname = username.value.trim().toLowerCase();
+      const pwd = password.value;
+
+      if (!uname || !pwd) {
+        setAuthMessage("ユーザー名とパスワードを入力してください。", "error");
+        return;
+      }
+
+      const email = usernameToEmail(uname);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pwd
+      });
+
+      if (error) {
+        setAuthMessage(error.message, "error");
+        return;
+      }
+
+      currentUser = data.user;
+      try {
+        currentUsername = await getProfileUsername(data.user.id);
+      } catch {
+        currentUsername = uname;
+      }
+      renderApp();
+      await loadAllData();
+    }
+
+    async function restoreSession() {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        renderApp();
+        return;
+      }
+      currentUser = data.session.user;
+      try {
+        currentUsername = await getProfileUsername(currentUser.id);
+      } catch {
+        currentUsername = currentUser.email?.split("@")[0] || "";
+      }
+      renderApp();
+      await loadAllData();
+    }
+
+    showLoginBtn.onclick = () => switchAuthMode("login");
+    showSignupBtn.onclick = () => switchAuthMode("signup");
+
+    authSubmitBtn.onclick = async () => {
+      setAuthMessage("");
+      if (authMode === "signup") {
+        await signUpWithUsername();
+      } else {
+        await loginWithUsername();
+      }
     };
 
+    logoutBtn.onclick = async () => {
+      await supabase.auth.signOut();
+      currentUser = null;
+      currentUsername = "";
+      applications = [];
+      tasks = [];
+      renderApp();
+    };
+
+    refreshBtn.onclick = async () => {
+      try {
+        await loadAllData();
+      } catch (err) {
+        setAppMessage(err.message || "再読み込みに失敗しました。", "error");
+      }
+    };
+
+    saveEntryBtn.onclick = saveEntry;
     clearFormBtn.onclick = clearEntryForm;
     addTaskBtn.onclick = addTask;
     taskInput.addEventListener("keydown", function(e) { if (e.key === "Enter") addTask(); });
@@ -597,13 +685,26 @@
     filterType.onchange = renderEntries;
     filterStatus.onchange = renderEntries;
     filterDeadline.onchange = renderEntries;
-    sortDeadlineBtn.onclick = () => { deadlineSort = deadlineSort === "asc" ? "desc" : "asc"; renderEntries(); };
+    sortDeadlineBtn.onclick = async () => {
+      deadlineSort = deadlineSort === "asc" ? "desc" : "asc";
+      renderEntries();
+    };
 
     switchAuthMode("signup");
-    renderApp();
+    authNotice.textContent = "Supabase 接続済みです。登録前に Supabase の Email プロバイダで Confirm email を OFF にしておくとスムーズです。";
+
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session) return;
+      currentUser = session.user;
+    });
+
     window.editEntry = editEntry;
     window.deleteEntry = deleteEntry;
     window.completeTask = completeTask;
+
+    restoreSession().catch(err => {
+      setAuthMessage(err.message || "初期化に失敗しました。", "error");
+    });
   </script>
 </body>
 </html>
