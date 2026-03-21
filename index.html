@@ -59,10 +59,7 @@
       <p class="muted">どのブラウザからでも同じユーザー名・パスワードで使える Supabase 版です。</p>
       <div id="authNotice" class="status-bar">初回は「新規登録」から作成してください。</div>
 
-      <div class="actions" style="margin-bottom:16px;">
-        <button id="showLoginBtn" class="sub-btn" type="button">ログイン</button>
-        <button id="showSignupBtn" type="button">新規登録</button>
-      </div>
+      
 
       <div id="authMessage" class="muted" style="margin-bottom:12px;"></div>
 <div class="row">
@@ -79,7 +76,9 @@
  
       <button id="authSubmitBtn" type="button">新規登録</button>
     </div>
-
+<div class="actions">
+  <button id="authSubmitBtn">ログイン</button>
+</div>
     <div id="appView" class="hidden">
       <div class="card">
         <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
